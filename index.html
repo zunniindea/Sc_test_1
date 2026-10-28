@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>무선 전력 전송 가상 실험실</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      font-family: 'Noto Sans KR', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f4f6f9;
+      color: #191f28;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      max-width: 100vw !important;
+      overflow-x: hidden !important;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+    /* GitHub Pages README.md / Jekyll 래퍼 자동 초기화 */
+    .markdown-body, .container-lg, .px-3, .my-5 {
+      max-width: 100% !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    .markdown-body > h1:first-child {
+      display: none !important;
+    }
+    h1, h2, h3, h4, p {
+      border-bottom: none !important;
+      margin: 0;
+    }
+    .soft-card {
+      background: #ffffff;
+      border-radius: 20px;
+      border: 1px solid #e5e8eb;
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      background: #e5e8eb;
+      border-radius: 999px;
+      outline: none;
+      transition: background 0.2s;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #3182f6;
+      border: 3px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(49, 130, 246, 0.35);
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:active {
+      transform: scale(1.15);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #3182f6;
+      border: 3px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(49, 130, 246, 0.35);
+      cursor: pointer;
+    }
+    .mode-active-normal {
+      background-color: #eff6ff !important;
+      border-color: #3182f6 !important;
+      color: #1b64da !important;
+      font-weight: 700 !important;
+    }
+    .mode-active-fault {
+      background-color: #fff0f1 !important;
+      border-color: #f04452 !important;
+      color: #d22030 !important;
+      font-weight: 700 !important;
+    }
+    .preset-active {
+      background-color: #191f28 !important;
+      color: #ffffff !important;
+      border-color: #191f28 !important;
+    }
+  </style>
+</head>
+<body class="w-full min-h-dvh bg-[#f4f6f9] text-[#191f28]">
+  <div id="app-root" class="w-full max-w-6xl mx-auto px-3 py-3 sm:px-5 sm:py-4">
+    <!-- 상단 심플 네비게이션 바 -->
+    <header class="soft-card px-4 py-3 mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-2.5 h-2.5 rounded-full bg-[#3182f6] shrink-0"></div>
+        <h1 class="text-sm sm:text-base font-bold tracking-tight text-[#191f28] truncate">
+          선이 없는데 왜 불이 켜질까? · 무선 전력 전송 체험
+        </h1>
+      </div>
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <button id="btn-power-toggle" type="button" class="px-3 py-1.5 rounded-full text-xs font-bold bg-[#00b493] hover:bg-[#009e80] text-white transition flex items-center gap-1.5">
+          <span id="power-dot" class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+          <span id="power-label">건전지 전원 켜짐</span>
+        </button>
+        <button id="btn-sound-toggle" type="button" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-[#f2f4f6] hover:bg-[#e5e8eb] text-[#4e5968] transition">
+          <span id="sound-icon">소리 꺼짐</span>
+        </button>
+        <button id="btn-info-modal" type="button" class="px-3 py-1.5 rounded-full text-xs font-bold bg-[#eff6ff] hover:bg-[#dbeafe] text-[#1b64da] transition">
+          쉬운 원리·배선표 보기
+        </button>
+      </div>
+    </header>
+    <!-- 메인 그리드: 왼쪽(모바일 상단) 인터랙티브 실험실 / 오른쪽(모바일 하단) 세부 조절 -->
+    <main class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
+      <!-- 왼쪽 7칸: 코일 실험 캔버스 + 원클릭 미리 체험 버튼 -->
+      <div class="lg:col-span-7 flex flex-col gap-3 min-w-0">
+        <div class="soft-card overflow-hidden flex flex-col">
+          <!-- 슬림 상태 요약 바 (높이 고정, 모바일에서도 한 줄/두 줄 깔끔하게) -->
+          <div class="grid grid-cols-4 border-b border-[#e5e8eb] bg-[#f9fafb] divide-x divide-[#e5e8eb] text-center py-2 px-1">
+            <div class="px-1 min-w-0">
+              <div class="text-[11px] text-[#6b7684] font-medium truncate">LED 상태</div>
+              <div id="metric-led-brightness" class="text-xs sm:text-sm font-extrabold text-[#f04452] mt-0.5 truncate">밝게 켜짐 (92%)</div>
+            </div>
+            <div class="px-1 min-w-0">
+              <div class="text-[11px] text-[#6b7684] font-medium truncate">코일 간격·각도</div>
+              <div id="metric-distance" class="text-xs sm:text-sm font-bold text-[#191f28] mt-0.5 truncate">1.5cm / 0°</div>
+            </div>
+            <div class="px-1 min-w-0">
+              <div class="text-[11px] text-[#6b7684] font-medium truncate">만들어진 전기</div>
+              <div id="metric-voltage" class="text-xs sm:text-sm font-bold text-[#d97706] mt-0.5 truncate">2.35 V</div>
+            </div>
+            <div class="px-1 min-w-0">
+              <div class="text-[11px] text-[#6b7684] font-medium truncate">자기장 전달</div>
+              <div id="metric-circuit-status" class="text-xs sm:text-sm font-bold text-[#00b493] mt-0.5 truncate">88% 전달</div>
+            </div>
+          </div>
+          <!-- 실시간 한줄 코칭 바 (높이 고정으로 캔버스 흔들림 완전 방지) -->
+          <div class="h-12 px-3.5 bg-[#191f28] text-white flex items-center justify-between gap-2">
+            <div id="live-easy-guide" class="text-xs sm:text-[13px] font-medium leading-snug text-slate-100 line-clamp-2">
+              위쪽 코일을 손가락이나 마우스로 잡고 위아래·좌우로 부드럽게 움직여 보세요.
+            </div>
+            <button id="btn-align-center" type="button" class="shrink-0 bg-white/15 hover:bg-white/25 text-white text-[11px] font-semibold px-2.5 py-1 rounded-full transition">
+              가운데로 정렬
+            </button>
+          </div>
+          <!-- 캔버스 래퍼: 고정 높이 + absolute 캔버스로 무한 늘어남 버그 원천 차단 -->
+          <div class="relative w-full h-[330px] sm:h-[370px] overflow-hidden touch-none bg-[#f8fafc]">
+            <canvas id="sim-main-canvas" class="absolute inset-0 w-full h-full block cursor-grab active:cursor-grabbing"></canvas>
+          </div>
+          <!-- 원클릭 미리 체험하기 바 (초보자도 버튼만 눌러 바로 비교 체험) -->
+          <div class="p-3 bg-white border-t border-[#e5e8eb]">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-[#4e5968]">원클릭 상황별 미리 체험하기</span>
+              <span class="text-[11px] text-[#8b95a1]">버튼을 누르면 코일이 부드럽게 이동해요</span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+              <button id="btn-sim-optimal" type="button" data-preset="optimal" class="preset-btn preset-active py-2 px-2.5 rounded-xl text-xs font-semibold border border-[#e5e8eb] bg-[#f9fafb] text-[#333d4b] transition truncate">
+                가장 잘 켜지는 위치로
+              </button>
+              <button id="btn-preset-far" type="button" data-preset="far" class="preset-btn py-2 px-2.5 rounded-xl text-xs font-semibold border border-[#e5e8eb] bg-[#f9fafb] hover:bg-[#f2f4f6] text-[#333d4b] transition truncate">
+                멀리 떼어놓기 (5.5cm)
+              </button>
+              <button id="btn-preset-tilt" type="button" data-preset="tilt" class="preset-btn py-2 px-2.5 rounded-xl text-xs font-semibold border border-[#e5e8eb] bg-[#f9fafb] hover:bg-[#f2f4f6] text-[#333d4b] transition truncate">
+                수직으로 세우기 (90°)
+              </button>
+              <button id="btn-preset-offset" type="button" data-preset="offset" class="preset-btn py-2 px-2.5 rounded-xl text-xs font-semibold border border-[#e5e8eb] bg-[#f9fafb] hover:bg-[#f2f4f6] text-[#333d4b] transition truncate">
+                옆으로 비껴놓기
+              </button>
+            </div>
+          </div>
+        </div>
+        <!-- 하단 3단계 핵심 요약 카드 (부드러운 라운드 박스) -->
+        <div class="soft-card p-3.5 grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+          <div class="p-2.5 rounded-xl bg-[#f9fafb]">
+            <div class="font-bold text-[#191f28] mb-0.5">1. 전류 흔들기 (트랜지스터)</div>
+            <div class="text-[#4e5968] leading-relaxed">건전지의 일정한 전기를 1초에 수십만 번 껐다 켰다 흔들어 줍니다.</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-[#f9fafb]">
+            <div class="font-bold text-[#191f28] mb-0.5">2. 자기장 물결 (보내는 코일)</div>
+            <div class="text-[#4e5968] leading-relaxed">전기가 흔들리면 아래 코일 주변에 보이지 않는 자기장 물결이 퍼집니다.</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-[#f9fafb]">
+            <div class="font-bold text-[#191f28] mb-0.5">3. 전기 생성 (받는 코일)</div>
+            <div class="text-[#4e5968] leading-relaxed">자기장 물결이 위 코일 구멍을 통과하면 새 전기가 생겨 LED가 켜집니다.</div>
+          </div>
+        </div>
+      </div>
+      <!-- 오른쪽 5칸: 슬라이더 조절 + 실시간 전기 물결 + 불이 안 켜질 때 원인 체험 -->
+      <div class="lg:col-span-5 flex flex-col gap-3 min-w-0">
+        <!-- 1. 슬라이더 세부 조절 카드 -->
+        <div class="soft-card p-4 space-y-3.5">
+          <div>
+            <h2 class="text-sm font-bold text-[#191f28]">직접 조건을 바꾸며 비교해 보세요</h2>
+            <p class="text-xs text-[#6b7684] mt-0.5">거리·각도·감은 횟수에 따라 LED 밝기가 어떻게 변하는지 확인해 보세요.</p>
+          </div>
+          <!-- 슬라이더 1 -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-semibold text-[#333d4b]">두 코일 사이 거리</span>
+              <span id="lbl-slider-dist" class="font-bold text-[#3182f6]">1.5 cm</span>
+            </div>
+            <input id="slider-dist" type="range" min="0.5" max="7.0" step="0.1" value="1.5" class="w-full cursor-pointer" />
+            <div class="flex justify-between text-[11px] text-[#8b95a1]">
+              <span>0.5cm (가까움·밝음)</span>
+              <span>2.0cm (적당함)</span>
+              <span>7.0cm (멀어서 꺼짐)</span>
+            </div>
+          </div>
+          <!-- 슬라이더 2 -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-semibold text-[#333d4b]">위쪽 코일 기울기 각도</span>
+              <span id="lbl-slider-angle" class="font-bold text-[#00b493]">0° (수평)</span>
+            </div>
+            <input id="slider-angle" type="range" min="0" max="90" step="1" value="0" class="w-full cursor-pointer" />
+            <div class="flex justify-between text-[11px] text-[#8b95a1]">
+              <span>0° (마주 봄·최대)</span>
+              <span>45° (비스듬함)</span>
+              <span>90° (수직·꺼짐)</span>
+            </div>
+          </div>
+          <!-- 슬라이더 3 & 4 -->
+          <div class="grid grid-cols-2 gap-3 pt-1">
+            <div class="space-y-1.5">
+              <div class="flex justify-between items-center text-xs">
+                <span class="font-semibold text-[#333d4b]">코일 감은 수</span>
+                <span id="lbl-slider-turns" class="font-bold text-[#d97706]">30바퀴</span>
+              </div>
+              <input id="slider-turns" type="range" min="10" max="50" step="5" value="30" class="w-full cursor-pointer" />
+            </div>
+            <div class="space-y-1.5">
+              <div class="flex justify-between items-center text-xs">
+                <span class="font-semibold text-[#333d4b]">좌우 어긋남</span>
+                <span id="lbl-slider-offset" class="font-bold text-[#6b7684]">0.0 cm</span>
+              </div>
+              <input id="slider-offset" type="range" min="-4.0" max="4.0" step="0.2" value="0" class="w-full cursor-pointer" />
+            </div>
+          </div>
+        </div>
+        <!-- 2. 눈으로 보는 전기 물결 그래프 -->
+        <div class="soft-card p-4">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-[#191f28]">실시간 전기 물결 그래프</span>
+            <div class="flex items-center gap-2.5 text-[11px]">
+              <span class="flex items-center gap-1 text-[#d97706] font-semibold">
+                <span class="w-2.5 h-0.5 bg-[#f59e0b] inline-block"></span> 보내는 자기장
+              </span>
+              <span class="flex items-center gap-1 text-[#f04452] font-semibold">
+                <span class="w-2.5 h-0.5 bg-[#f04452] inline-block"></span> 만들어진 전기
+              </span>
+            </div>
+          </div>
+          <div class="relative w-full h-[64px] bg-[#191f28] rounded-xl overflow-hidden">
+            <canvas id="sim-wave-canvas" class="absolute inset-0 w-full h-full block"></canvas>
+          </div>
+        </div>
+        <!-- 3. 실제 만들 때 불이 안 켜지는 원인 체험 -->
+        <div class="soft-card p-4 space-y-2.5">
+          <div>
+            <h3 class="text-xs sm:text-sm font-bold text-[#191f28]">실제로 만들 때 불이 안 켜지는 대표 원인</h3>
+            <p class="text-[11px] text-[#6b7684] mt-0.5">각 상황을 눌러 왜 불이 안 켜지는지 미리 확인해 보세요.</p>
+          </div>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button type="button" data-fault="normal" class="fault-mode-btn mode-active-normal py-2 px-3 rounded-xl text-xs border border-[#e5e8eb] bg-[#f9fafb] text-[#333d4b] text-left transition truncate">
+              정상 연결 (불 잘 켜짐)
+            </button>
+            <button type="button" data-fault="enamel" class="fault-mode-btn py-2 px-3 rounded-xl text-xs border border-[#e5e8eb] bg-[#f9fafb] hover:bg-[#f2f4f6] text-[#333d4b] text-left transition truncate">
+              실수 1: 코일 끝 코팅 안 벗김
+            </button>
+            <button type="button" data-fault="phase" class="fault-mode-btn py-2 px-3 rounded-xl text-xs border border-[#e5e8eb] bg-[#f9fafb] hover:bg-[#f2f4f6] text-[#333d4b] text-left transition truncate">
+              실수 2: 코일 ①·③번 선 바뀜
+            </button>
+            <button type="button" data-fault="tr_rev" class="fault-mode-btn py-2 px-3 rounded-xl text-xs border border-[#e5e8eb] bg-[#f9fafb] hover:bg-[#f2f4f6] text-[#333d4b] text-left transition truncate">
+              실수 3: 트랜지스터 거꾸로 꽂음
+            </button>
+          </div>
+          <div id="fault-diagnosis-box" class="bg-[#f9fafb] rounded-xl p-3 border border-[#e5e8eb] text-xs text-[#333d4b] leading-relaxed">
+            <strong class="text-[#1b64da]">[정상 작동 중]</strong> 건전지 전기가 트랜지스터를 거쳐 아래쪽 코일에서 자기장 물결을 만들고, 위쪽 코일이 그 힘을 받아 LED에 불을 켭니다.
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <!-- 원리 설명 & 브레드보드 배선표 모달 -->
+  <div id="info-modal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-3">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-5 border border-[#e5e8eb] shadow-2xl space-y-4 max-h-[90dvh] overflow-y-auto text-[#191f28]">
+      <div class="flex items-center justify-between border-b border-[#e5e8eb] pb-3">
+        <h3 class="text-base font-bold">선이 없는데 어떻게 전기가 전달될까요?</h3>
+        <button id="btn-close-modal" type="button" class="px-3 py-1 rounded-full bg-[#f2f4f6] hover:bg-[#e5e8eb] text-xs font-bold text-[#4e5968]">
+          닫기
+        </button>
+      </div>
+      <div class="space-y-3 text-xs sm:text-sm leading-relaxed">
+        <div class="bg-[#eff6ff] p-3.5 rounded-2xl">
+          <div class="font-bold text-[#1b64da] mb-1">1. 스마트폰 무선 충전기와 같은 원리예요 (전자기 유도)</div>
+          <p class="text-[#333d4b]">
+            자석을 코일(구리선 고리) 가까이에서 흔들면 코일에 전기가 생깁니다. 손으로 자석을 흔드는 대신, <strong>아래쪽 코일에 흐르는 전기를 빠르게 흔들어서 보이지 않는 자석 힘(자기장 물결)</strong>을 공중으로 보냅니다.
+          </p>
+        </div>
+        <div class="bg-[#fffbeb] p-3.5 rounded-2xl">
+          <div class="font-bold text-[#b45309] mb-1">2. 검은색 다리 3개 부품(2N2222 트랜지스터)의 역할</div>
+          <p class="text-[#333d4b]">
+            AA 1.5V 건전지는 전기가 일정하게만 흘러서(직류) 그대로 코일에 연결하면 자기장 물결이 생기지 않아요. <strong>트랜지스터</strong>와 <strong>코일 가운데 고리(중간탭)</strong>를 연결하면 전기를 <strong>1초에 수십만 번 자동으로 껐다 켰다 하는 스위치</strong> 역할을 합니다.
+          </p>
+        </div>
+        <div class="bg-[#f9fafb] p-3.5 rounded-2xl border border-[#e5e8eb]">
+          <div class="font-bold text-[#191f28] mb-1.5">3. 브레드보드(빵판) 똑같이 꽂는 4줄 요약표</div>
+          <p class="text-xs text-[#6b7684] mb-2">트랜지스터의 납작한 면이 나를 보게 두고, 왼쪽 다리부터 5번·6번·7번 줄에 나란히 꽂으세요.</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            <div class="p-2.5 rounded-xl bg-white border border-[#e5e8eb]">
+              <strong class="text-[#1b64da]">5번 줄:</strong> 트랜지스터 왼쪽 다리 + 건전지 검은선(-)
+            </div>
+            <div class="p-2.5 rounded-xl bg-white border border-[#e5e8eb]">
+              <strong class="text-[#00b493]">6번 줄:</strong> 트랜지스터 가운데 다리 + 저항 한쪽 + 코일 ①시작선
+            </div>
+            <div class="p-2.5 rounded-xl bg-white border border-[#e5e8eb]">
+              <strong class="text-[#f04452]">7번 줄:</strong> 트랜지스터 오른쪽 다리 + 코일 ③끝선
+            </div>
+            <div class="p-2.5 rounded-xl bg-white border border-[#e5e8eb]">
+              <strong class="text-[#d97706]">10번 줄:</strong> 저항 반대쪽 + 코일 ②중간탭 + 건전지 빨간선(+)
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      // GitHub Pages README.md에 붙여넣었을 때 상단 Sc_test_1 및 <!DOCTYPE html> 텍스트 자동 숨김 처리
+      try {
+        if (!document.querySelector('meta[name="viewport"]')) {
+          const mv = document.createElement('meta');
+          mv.name = 'viewport';
+          mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+          document.head.appendChild(mv);
+        }
+        const allParagraphs = document.querySelectorAll('p, h1');
+        allParagraphs.forEach(function (el) {
+          const txt = (el.textContent || '').trim();
+          if (txt.indexOf('<!DOCTYPE') === 0 || txt === 'Sc_test_1') {
+            el.style.display = 'none';
+          }
+        });
+      } catch (err) {}
+
+      // --- 효과음 (Web Audio API) ---
+      let soundEnabled = false;
+      let audioCtx = null;
+
+      function playTone(freq, durationMs, type) {
+        if (!soundEnabled) return;
+        try {
+          if (!audioCtx) {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (AudioContextClass) audioCtx = new AudioContextClass();
+          }
+          if (!audioCtx) return;
+          if (audioCtx.state === 'suspended') audioCtx.resume();
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = type || 'sine';
+          osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + durationMs / 1000);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + durationMs / 1000);
+        } catch (e) {}
+      }
+
+      const btnSoundToggle = document.getElementById('btn-sound-toggle');
+      const soundIcon = document.getElementById('sound-icon');
+      btnSoundToggle.addEventListener('click', function () {
+        soundEnabled = !soundEnabled;
+        soundIcon.textContent = soundEnabled ? '소리 켜짐' : '소리 꺼짐';
+        if (soundEnabled) playTone(660, 100, 'triangle');
+      });
+
+      // --- 모달 열기/닫기 ---
+      const infoModal = document.getElementById('info-modal');
+      document.getElementById('btn-info-modal').addEventListener('click', function () {
+        infoModal.classList.remove('hidden');
+        playTone(540, 80, 'sine');
+      });
+      document.getElementById('btn-close-modal').addEventListener('click', function () {
+        infoModal.classList.add('hidden');
+      });
+      infoModal.addEventListener('click', function (e) {
+        if (e.target === infoModal) infoModal.classList.add('hidden');
+      });
+
+      // --- 목표 상태값 & 부드러운 애니메이션용 현재 렌더링 상태값 ---
+      const simState = {
+        powerOn: true,
+        distanceCm: 1.5,
+        angleDeg: 0,
+        rxTurns: 30,
+        offsetCm: 0.0,
+        faultMode: 'normal',
+        isDragging: false,
+        phaseTick: 0
+      };
+
+      const smoothState = {
+        distanceCm: 1.5,
+        angleDeg: 0,
+        offsetCm: 0.0,
+        ledBrightness: 92,
+        inducedVoltage: 2.35
+      };
+
+      const simMainCanvas = document.getElementById('sim-main-canvas');
+      const simMainCtx = simMainCanvas.getContext('2d');
+      const simWaveCanvas = document.getElementById('sim-wave-canvas');
+      const simWaveCtx = simWaveCanvas.getContext('2d');
+
+      const sliderDist = document.getElementById('slider-dist');
+      const sliderAngle = document.getElementById('slider-angle');
+      const sliderTurns = document.getElementById('slider-turns');
+      const sliderOffset = document.getElementById('slider-offset');
+
+      const lblDist = document.getElementById('lbl-slider-dist');
+      const lblAngle = document.getElementById('lbl-slider-angle');
+      const lblTurns = document.getElementById('lbl-slider-turns');
+      const lblOffset = document.getElementById('lbl-slider-offset');
+
+      const metricLed = document.getElementById('metric-led-brightness');
+      const metricDist = document.getElementById('metric-distance');
+      const metricVolt = document.getElementById('metric-voltage');
+      const metricStatus = document.getElementById('metric-circuit-status');
+      const faultDiagnosisBox = document.getElementById('fault-diagnosis-box');
+      const liveEasyGuide = document.getElementById('live-easy-guide');
+
+      const btnPowerToggle = document.getElementById('btn-power-toggle');
+      const powerDot = document.getElementById('power-dot');
+      const powerLabel = document.getElementById('power-label');
+
+      function computeSimPhysics(distVal, angleVal, offsetVal, turnsVal) {
+        const d = distVal !== undefined ? distVal : simState.distanceCm;
+        const a = angleVal !== undefined ? angleVal : simState.angleDeg;
+        const o = offsetVal !== undefined ? offsetVal : simState.offsetCm;
+        const t = turnsVal !== undefined ? turnsVal : simState.rxTurns;
+
+        if (!simState.powerOn || simState.faultMode !== 'normal') {
+          return {
+            inducedVoltage: 0,
+            ledBrightness: 0,
+            couplingPct: 0,
+            oscillating: false
+          };
+        }
+        const distFactor = Math.exp(-0.48 * (d - 0.5));
+        const angleRad = (a * Math.PI) / 180;
+        const angleFactor = Math.max(0, Math.cos(angleRad));
+        const offsetFactor = Math.max(0, 1 - Math.pow(Math.abs(o) / 4.5, 1.6));
+        const turnsFactor = t / 30;
+
+        const coupling = Math.max(0, Math.min(1, distFactor * angleFactor * offsetFactor));
+        const rawV = 2.9 * coupling * turnsFactor;
+        const inducedV = Math.max(0, Math.min(3.5, rawV));
+
+        let brightness = 0;
+        if (inducedV >= 1.45) {
+          brightness = Math.min(100, Math.round(((inducedV - 1.35) / 1.45) * 100));
+        } else if (inducedV >= 1.05) {
+          brightness = Math.round(((inducedV - 1.05) / 0.4) * 18);
+        }
+        return {
+          inducedVoltage: inducedV,
+          ledBrightness: Math.max(0, Math.min(100, brightness)),
+          couplingPct: Math.round(coupling * 100),
+          oscillating: true
+        };
+      }
+
+      function buildEasyGuideText(phys) {
+        if (!simState.powerOn) {
+          return '건전지 전원이 꺼져 있어요. 상단의 [건전지 전원] 버튼을 눌러 전기를 켜 보세요.';
+        }
+        if (simState.faultMode === 'enamel') {
+          return '코일 끝의 갈색 절연 코팅을 사포로 벗기지 않아 전기가 흐르지 못하고 있어요.';
+        }
+        if (simState.faultMode === 'phase') {
+          return '아래 코일의 ①번 선과 ③번 선이 반대로 꽂혀 전기 진동이 멈췄어요.';
+        }
+        if (simState.faultMode === 'tr_rev') {
+          return '트랜지스터가 거꾸로 꽂혀 작동하지 않고 부품에 열이 나고 있어요.';
+        }
+        if (simState.angleDeg >= 75) {
+          return '위쪽 코일이 세로(' + simState.angleDeg + '°)로 서 있어서 자기장 물결이 구멍을 통과하지 못해 꺼졌어요.';
+        }
+        if (Math.abs(simState.offsetCm) >= 2.2 && phys.ledBrightness === 0) {
+          return '위쪽 코일이 옆으로 비껴나 있어서 자기장을 받지 못해요. 가운데로 옮겨 보세요.';
+        }
+        if (simState.distanceCm > 3.2 && phys.ledBrightness === 0) {
+          return '두 코일 사이가 멀어요(' + simState.distanceCm.toFixed(1) + 'cm). 위쪽 코일을 아래로 내려보세요!';
+        }
+        if (phys.ledBrightness >= 60) {
+          return '두 코일이 가깝고 나란히 마주 보고 있어서 자기장이 잘 통과해 LED가 밝게 켜졌습니다!';
+        }
+        if (phys.ledBrightness > 0) {
+          return '전기가 약하게 만들어져 LED가 희미하게 켜졌어요. 코일을 조금 더 가까이 내려보세요.';
+        }
+        return '위쪽 코일을 아래쪽 코일 가까이(2cm 이내) 가져가면 LED에 불이 켜집니다.';
+      }
+
+      const presetBtns = document.querySelectorAll('.preset-btn');
+      function updatePresetHighlight(activeKey) {
+        presetBtns.forEach(function (btn) {
+          if (btn.getAttribute('data-preset') === activeKey) {
+            btn.classList.add('preset-active');
+          } else {
+            btn.classList.remove('preset-active');
+          }
+        });
+      }
+
+      function updateSimUI() {
+        lblDist.textContent = simState.distanceCm.toFixed(1) + ' cm';
+        lblAngle.textContent = simState.angleDeg + '°' + (simState.angleDeg === 0 ? ' (수평)' : simState.angleDeg === 90 ? ' (수직)' : '');
+        lblTurns.textContent = simState.rxTurns + '바퀴';
+        lblOffset.textContent = (simState.offsetCm > 0 ? '+' : '') + simState.offsetCm.toFixed(1) + ' cm';
+
+        const phys = computeSimPhysics();
+        metricDist.textContent = simState.distanceCm.toFixed(1) + 'cm / ' + simState.angleDeg + '°';
+        metricVolt.textContent = phys.inducedVoltage.toFixed(2) + ' V';
+
+        if (phys.ledBrightness >= 55) {
+          metricLed.textContent = '밝게 켜짐 (' + phys.ledBrightness + '%)';
+          metricLed.className = 'text-xs sm:text-sm font-extrabold text-[#f04452] mt-0.5 truncate';
+        } else if (phys.ledBrightness > 0) {
+          metricLed.textContent = '희미함 (' + phys.ledBrightness + '%)';
+          metricLed.className = 'text-xs sm:text-sm font-extrabold text-[#d97706] mt-0.5 truncate';
+        } else {
+          metricLed.textContent = '꺼짐 (0%)';
+          metricLed.className = 'text-xs sm:text-sm font-bold text-[#8b95a1] mt-0.5 truncate';
+        }
+
+        if (!simState.powerOn) {
+          metricStatus.textContent = '전원 꺼짐';
+          metricStatus.className = 'text-xs sm:text-sm font-bold text-[#8b95a1] mt-0.5 truncate';
+        } else if (simState.faultMode === 'normal') {
+          metricStatus.textContent = phys.couplingPct + '% 전달';
+          metricStatus.className = 'text-xs sm:text-sm font-bold text-[#00b493] mt-0.5 truncate';
+        } else if (simState.faultMode === 'phase') {
+          metricStatus.textContent = '선 바뀜(정지)';
+          metricStatus.className = 'text-xs sm:text-sm font-bold text-[#f04452] mt-0.5 truncate';
+        } else if (simState.faultMode === 'enamel') {
+          metricStatus.textContent = '코팅 절연';
+          metricStatus.className = 'text-xs sm:text-sm font-bold text-[#f04452] mt-0.5 truncate';
+        } else if (simState.faultMode === 'tr_rev') {
+          metricStatus.textContent = '역방향 과열';
+          metricStatus.className = 'text-xs sm:text-sm font-bold text-[#f04452] mt-0.5 truncate';
+        }
+
+        liveEasyGuide.textContent = buildEasyGuideText(phys);
+      }
+
+      btnPowerToggle.addEventListener('click', function () {
+        simState.powerOn = !simState.powerOn;
+        if (simState.powerOn) {
+          btnPowerToggle.className = 'px-3 py-1.5 rounded-full text-xs font-bold bg-[#00b493] hover:bg-[#009e80] text-white transition flex items-center gap-1.5';
+          powerDot.className = 'w-2 h-2 rounded-full bg-white animate-pulse';
+          powerLabel.textContent = '건전지 전원 켜짐';
+          playTone(680, 100, 'triangle');
+        } else {
+          btnPowerToggle.className = 'px-3 py-1.5 rounded-full text-xs font-bold bg-[#6b7684] hover:bg-[#4e5968] text-white transition flex items-center gap-1.5';
+          powerDot.className = 'w-2 h-2 rounded-full bg-slate-300';
+          powerLabel.textContent = '건전지 전원 꺼짐';
+          playTone(300, 100, 'sine');
+        }
+        updateSimUI();
+      });
+
+      sliderDist.addEventListener('input', function (e) {
+        simState.distanceCm = parseFloat(e.target.value);
+        updatePresetHighlight('');
+        updateSimUI();
+      });
+      sliderAngle.addEventListener('input', function (e) {
+        simState.angleDeg = parseInt(e.target.value, 10);
+        updatePresetHighlight('');
+        updateSimUI();
+      });
+      sliderTurns.addEventListener('input', function (e) {
+        simState.rxTurns = parseInt(e.target.value, 10);
+        updateSimUI();
+      });
+      sliderOffset.addEventListener('input', function (e) {
+        simState.offsetCm = parseFloat(e.target.value);
+        updatePresetHighlight('');
+        updateSimUI();
+      });
+
+      function applyPreset(dist, angle, offset, presetKey) {
+        simState.powerOn = true;
+        simState.faultMode = 'normal';
+        simState.distanceCm = dist;
+        simState.angleDeg = angle;
+        simState.offsetCm = offset;
+        sliderDist.value = String(dist);
+        sliderAngle.value = String(angle);
+        sliderOffset.value = String(offset);
+        btnPowerToggle.className = 'px-3 py-1.5 rounded-full text-xs font-bold bg-[#00b493] hover:bg-[#009e80] text-white transition flex items-center gap-1.5';
+        powerDot.className = 'w-2 h-2 rounded-full bg-white animate-pulse';
+        powerLabel.textContent = '건전지 전원 켜짐';
+        syncFaultButtons();
+        updatePresetHighlight(presetKey);
+        updateSimUI();
+      }
+
+      document.getElementById('btn-sim-optimal').addEventListener('click', function () {
+        applyPreset(1.4, 0, 0.0, 'optimal');
+        playTone(780, 110, 'triangle');
+      });
+      document.getElementById('btn-preset-far').addEventListener('click', function () {
+        applyPreset(5.5, 0, 0.0, 'far');
+        playTone(420, 100, 'sine');
+      });
+      document.getElementById('btn-preset-tilt').addEventListener('click', function () {
+        applyPreset(1.5, 90, 0.0, 'tilt');
+        playTone(380, 100, 'sine');
+      });
+      document.getElementById('btn-preset-offset').addEventListener('click', function () {
+        applyPreset(1.6, 0, 3.2, 'offset');
+        playTone(460, 100, 'sine');
+      });
+
+      document.getElementById('btn-align-center').addEventListener('click', function () {
+        simState.offsetCm = 0.0;
+        simState.angleDeg = 0;
+        sliderOffset.value = '0';
+        sliderAngle.value = '0';
+        playTone(620, 80, 'sine');
+        updateSimUI();
+      });
+
+      const faultDescriptions = {
+        normal: '<strong class="text-[#1b64da]">[정상 작동 중]</strong> 건전지 전기가 트랜지스터를 거쳐 아래쪽 코일에서 자기장 물결을 만들고, 위쪽 코일이 그 힘을 받아 LED에 불을 켭니다.',
+        enamel: '<strong class="text-[#d22030]">[실수 1위: 에나멜 코팅을 안 벗김]</strong> 구리선 겉면에는 투명·갈색 절연 코팅이 칠해져 있어요. <strong>선 끝 1.5cm를 사포나 칼등으로 노란 구리 속살이 보일 때까지 빙 돌려 긁어내야</strong> 전기가 통합니다.',
+        phase: '<strong class="text-[#d22030]">[실수 2위: 코일 ①번·③번 선이 바뀜]</strong> 아래쪽 코일의 양 끝선 방향이 반대로 꽂히면 트랜지스터 스위칭이 멈춰요. <strong>브레드보드 6번 줄과 7번 줄에 꽂힌 코일 선 두 개를 서로 맞바꿔 꽂으면</strong> 바로 해결됩니다.',
+        tr_rev: '<strong class="text-[#d22030]">[실수 3위: 트랜지스터를 거꾸로 꽂음]</strong> 검은색 부품(2N2222)의 왼쪽·오른쪽 다리가 바뀌면 작동하지 않고 부품이 뜨거워져요. <strong>납작한 글씨 면이 내 쪽을 보도록</strong> 방향을 맞춰 다시 꽂으세요.'
+      };
+
+      const faultBtns = document.querySelectorAll('.fault-mode-btn');
+      function syncFaultButtons() {
+        faultBtns.forEach(function (btn) {
+          const fm = btn.getAttribute('data-fault');
+          if (fm === simState.faultMode) {
+            btn.className = 'fault-mode-btn py-2 px-3 rounded-xl text-xs border text-left transition truncate ' +
+              (fm === 'normal' ? 'mode-active-normal' : 'mode-active-fault');
+          } else {
+            btn.className = 'fault-mode-btn py-2 px-3 rounded-xl text-xs border border-[#e5e8eb] bg-[#f9fafb] hover:bg-[#f2f4f6] text-[#333d4b] text-left transition truncate';
+          }
+        });
+        faultDiagnosisBox.innerHTML = faultDescriptions[simState.faultMode];
+      }
+
+      faultBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          simState.faultMode = btn.getAttribute('data-fault');
+          playTone(simState.faultMode === 'normal' ? 700 : 250, 110, 'triangle');
+          syncFaultButtons();
+          updateSimUI();
+        });
+      });
+
+      // --- 터치/마우스로 위쪽 코일 부드럽게 드래그 ---
+      function handleCanvasDrag(clientX, clientY) {
+        if (!simState.isDragging) return;
+        const rect = simMainCanvas.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        const cx = rect.width / 2;
+        const txY = rect.height - 88;
+        const topMargin = 78;
+        const maxTravelPx = Math.max(90, txY - topMargin);
+
+        const clampedPxGap = Math.max(24, Math.min(maxTravelPx, txY - y));
+        const newDist = 0.5 + ((clampedPxGap - 24) / Math.max(1, maxTravelPx - 24)) * 6.5;
+        simState.distanceCm = Math.round(newDist * 10) / 10;
+
+        const maxHorizPx = Math.max(60, rect.width * 0.3);
+        const rawOffsetCm = ((x - cx) / maxHorizPx) * 4.0;
+        simState.offsetCm = Math.round(Math.max(-4.0, Math.min(4.0, rawOffsetCm)) * 5) / 5;
+
+        sliderDist.value = String(simState.distanceCm);
+        sliderOffset.value = String(simState.offsetCm);
+        updatePresetHighlight('');
+        updateSimUI();
+      }
+
+      simMainCanvas.addEventListener('mousedown', function (e) {
+        simState.isDragging = true;
+        handleCanvasDrag(e.clientX, e.clientY);
+      });
+      window.addEventListener('mousemove', function (e) {
+        if (simState.isDragging) handleCanvasDrag(e.clientX, e.clientY);
+      });
+      window.addEventListener('mouseup', function () {
+        simState.isDragging = false;
+      });
+
+      simMainCanvas.addEventListener('touchstart', function (e) {
+        if (e.touches.length > 0) {
+          simState.isDragging = true;
+          handleCanvasDrag(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      }, { passive: true });
+      simMainCanvas.addEventListener('touchmove', function (e) {
+        if (simState.isDragging && e.touches.length > 0) {
+          handleCanvasDrag(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      }, { passive: true });
+      simMainCanvas.addEventListener('touchend', function () {
+        simState.isDragging = false;
+      });
+
+      // --- 메인 실험 캔버스 렌더링 (겹침 제로 & 60fps 부드러운 보간) ---
+      function drawMainSimulator() {
+        const parent = simMainCanvas.parentElement;
+        const w = Math.max(260, parent.clientWidth);
+        const h = Math.max(260, parent.clientHeight);
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        const targetW = Math.floor(w * dpr);
+        const targetH = Math.floor(h * dpr);
+        if (simMainCanvas.width !== targetW || simMainCanvas.height !== targetH) {
+          simMainCanvas.width = targetW;
+          simMainCanvas.height = targetH;
+        }
+
+        // 부드러운 스프링 보간 (Lerp)
+        const lerpRate = simState.isDragging ? 0.35 : 0.16;
+        smoothState.distanceCm += (simState.distanceCm - smoothState.distanceCm) * lerpRate;
+        smoothState.angleDeg += (simState.angleDeg - smoothState.angleDeg) * lerpRate;
+        smoothState.offsetCm += (simState.offsetCm - smoothState.offsetCm) * lerpRate;
+
+        const targetPhys = computeSimPhysics(smoothState.distanceCm, smoothState.angleDeg, smoothState.offsetCm, simState.rxTurns);
+        smoothState.ledBrightness += (targetPhys.ledBrightness - smoothState.ledBrightness) * 0.22;
+        smoothState.inducedVoltage += (targetPhys.inducedVoltage - smoothState.inducedVoltage) * 0.22;
+
+        simMainCtx.save();
+        simMainCtx.scale(dpr, dpr);
+
+        // 1. 부드러운 배경
+        simMainCtx.fillStyle = '#f8fafc';
+        simMainCtx.fillRect(0, 0, w, h);
+
+        simMainCtx.strokeStyle = 'rgba(203, 213, 225, 0.35)';
+        simMainCtx.lineWidth = 1;
+        for (let gx = 0; gx < w; gx += 28) {
+          simMainCtx.beginPath(); simMainCtx.moveTo(gx, 0); simMainCtx.lineTo(gx, h); simMainCtx.stroke();
+        }
+        for (let gy = 0; gy < h; gy += 28) {
+          simMainCtx.beginPath(); simMainCtx.moveTo(0, gy); simMainCtx.lineTo(w, gy); simMainCtx.stroke();
+        }
+
+        const cx = w / 2;
+        const txY = h - 86;
+        const topMargin = 78;
+        const maxTravelPx = Math.max(90, txY - topMargin);
+        const pixelGap = 24 + ((smoothState.distanceCm - 0.5) / 6.5) * (maxTravelPx - 24);
+        const maxHorizPx = Math.max(60, w * 0.3);
+        const rxX = cx + (smoothState.offsetCm / 4.0) * maxHorizPx;
+        const rxY = txY - pixelGap;
+
+        const coilHalfW = Math.min(78, w * 0.22);
+
+        // 2. 부드럽게 퍼져 올라가는 자기장 파동 고리 (코일 사이 텍스트 완전 제거로 겹침 방지)
+        if (targetPhys.oscillating) {
+          const couplingRatio = targetPhys.couplingPct / 100;
+          // 은은한 자기장 기둥 후광
+          const fieldGrad = simMainCtx.createLinearGradient(cx, txY, rxX, rxY);
+          fieldGrad.addColorStop(0, 'rgba(49, 130, 246, ' + (0.14 + couplingRatio * 0.14).toFixed(2) + ')');
+          fieldGrad.addColorStop(1, 'rgba(49, 130, 246, 0.02)');
+          simMainCtx.fillStyle = fieldGrad;
+          simMainCtx.beginPath();
+          simMainCtx.moveTo(cx - coilHalfW, txY);
+          simMainCtx.lineTo(rxX - coilHalfW, rxY);
+          simMainCtx.lineTo(rxX + coilHalfW, rxY);
+          simMainCtx.lineTo(cx + coilHalfW, txY);
+          simMainCtx.closePath();
+          simMainCtx.fill();
+
+          // 올라가는 자기장 물결 링 4개
+          for (let r = 0; r < 4; r++) {
+            const prog = ((simState.phaseTick * 0.045 + r / 4) % 1);
+            const ringY = txY - 6 - prog * (pixelGap + 12);
+            const ringX = cx + (rxX - cx) * prog;
+            const ringAlpha = Math.sin(prog * Math.PI) * (0.28 + couplingRatio * 0.42);
+            simMainCtx.strokeStyle = 'rgba(49, 130, 246, ' + Math.max(0.05, ringAlpha).toFixed(2) + ')';
+            simMainCtx.lineWidth = 2;
+            simMainCtx.beginPath();
+            simMainCtx.ellipse(ringX, ringY, coilHalfW * (0.85 + prog * 0.25), 9 + prog * 3, 0, 0, Math.PI * 2);
+            simMainCtx.stroke();
+          }
+        }
+
+        // 3. 하단 송신부 베이스 (아래쪽 코일 아래 영역에만 깔끔하게 배치해 절대 겹치지 않음)
+        const baseW = Math.min(320, w - 28);
+        const baseX = cx - baseW / 2;
+        const baseY = txY + 22;
+
+        // 베이스 카드
+        simMainCtx.fillStyle = '#ffffff';
+        simMainCtx.strokeStyle = '#cbd5e1';
+        simMainCtx.lineWidth = 1.5;
+        simMainCtx.beginPath();
+        simMainCtx.roundRect(baseX, baseY, baseW, 52, 14);
+        simMainCtx.fill();
+        simMainCtx.stroke();
+
+        // 코일 연결 다리 3가닥
+        [-18, 0, 18].forEach(function (dx) {
+          simMainCtx.strokeStyle = simState.faultMode === 'enamel' ? '#78350f' : '#d97706';
+          simMainCtx.lineWidth = 2;
+          simMainCtx.beginPath();
+          simMainCtx.moveTo(cx + dx, baseY);
+          simMainCtx.lineTo(cx + dx * 1.3, txY + 8);
+          simMainCtx.stroke();
+        });
+
+        // 왼쪽: 건전지 아이콘
+        const batX = baseX + 14;
+        const batY = baseY + 11;
+        simMainCtx.fillStyle = simState.powerOn ? '#f59e0b' : '#94a3b8';
+        simMainCtx.fillRect(batX, batY, 20, 16);
+        simMainCtx.fillStyle = '#1e293b';
+        simMainCtx.fillRect(batX + 20, batY, 24, 16);
+        simMainCtx.fillStyle = '#ffffff';
+        simMainCtx.font = 'bold 8px "Inter", sans-serif';
+        simMainCtx.textAlign = 'center';
+        simMainCtx.fillText('1.5V', batX + 22, batY + 11);
+
+        // 가운데: 하단 설명 텍스트
+        simMainCtx.fillStyle = '#191f28';
+        simMainCtx.font = 'bold 11px "Noto Sans KR", sans-serif';
+        simMainCtx.textAlign = 'left';
+        simMainCtx.fillText('아래쪽: 보내는 코일 (30바퀴·중간탭)', batX + 54, baseY + 21);
+
+        simMainCtx.fillStyle = '#6b7684';
+        simMainCtx.font = '500 10px "Noto Sans KR", sans-serif';
+        let subStatusText = 'AA 건전지 + 트랜지스터(2N2222) + 1kΩ 저항';
+        if (simState.faultMode === 'enamel') subStatusText = '오류: 코일 끝 코팅 안 벗김 (전류 차단)';
+        if (simState.faultMode === 'phase') subStatusText = '오류: 코일 ①·③번 선 반대 (발진 정지)';
+        if (simState.faultMode === 'tr_rev') subStatusText = '오류: 트랜지스터 역방향 (발열 발생)';
+        simMainCtx.fillStyle = simState.faultMode === 'normal' ? '#6b7684' : '#e11d48';
+        simMainCtx.fillText(subStatusText, batX + 54, baseY + 38);
+
+        // 4. 아래쪽 보내는 구리 코일 (입체적인 링)
+        for (let i = -3; i <= 3; i++) {
+          simMainCtx.strokeStyle = i % 2 === 0 ? '#c2410c' : '#ea580c';
+          simMainCtx.lineWidth = 2.6;
+          simMainCtx.beginPath();
+          simMainCtx.ellipse(cx, txY + i * 1.6, coilHalfW, 11, 0, 0, Math.PI * 2);
+          simMainCtx.stroke();
+        }
+
+        // 5. 위쪽 받는 코일 + 큼직한 빨간색 LED 돔 (코일 위쪽에 배치되어 아래 코일과 절대 안 겹침!)
+        simMainCtx.save();
+        simMainCtx.translate(rxX, rxY);
+        simMainCtx.rotate((smoothState.angleDeg * Math.PI) / 180);
+
+        // 드래그 터치 영역 하이라이트
+        simMainCtx.fillStyle = simState.isDragging ? 'rgba(49, 130, 246, 0.12)' : 'rgba(255, 255, 255, 0.55)';
+        simMainCtx.beginPath();
+        simMainCtx.ellipse(0, 0, coilHalfW + 10, 18, 0, 0, Math.PI * 2);
+        simMainCtx.fill();
+
+        // 받는 코일 구리 링들
+        const rxLoops = Math.max(3, Math.round(simState.rxTurns / 10));
+        for (let j = -rxLoops + 1; j <= rxLoops - 1; j++) {
+          simMainCtx.strokeStyle = j % 2 === 0 ? '#b45309' : '#f59e0b';
+          simMainCtx.lineWidth = 2.5;
+          simMainCtx.beginPath();
+          simMainCtx.ellipse(0, j * 1.5, coilHalfW * 0.96, 10.5, 0, 0, Math.PI * 2);
+          simMainCtx.stroke();
+        }
+
+        // 코일 중앙 위쪽에 연결된 큼직한 5mm 빨간색 LED 전구
+        const ledCenterY = -28;
+        // LED 다리 2개
+        simMainCtx.strokeStyle = '#64748b';
+        simMainCtx.lineWidth = 2;
+        simMainCtx.beginPath();
+        simMainCtx.moveTo(-7, -6);
+        simMainCtx.lineTo(-5, ledCenterY + 8);
+        simMainCtx.moveTo(7, -6);
+        simMainCtx.lineTo(5, ledCenterY + 8);
+        simMainCtx.stroke();
+
+        // LED 발광 후광 (밝기에 비례하여 부드럽게 빛남)
+        const bVal = smoothState.ledBrightness;
+        if (bVal > 1) {
+          const glowR = 20 + (bVal / 100) * 36;
+          const grad = simMainCtx.createRadialGradient(0, ledCenterY, 2, 0, ledCenterY, glowR);
+          grad.addColorStop(0, 'rgba(255, 45, 65, ' + Math.min(0.85, 0.35 + bVal / 130).toFixed(2) + ')');
+          grad.addColorStop(0.5, 'rgba(240, 68, 82, ' + (bVal / 220).toFixed(2) + ')');
+          grad.addColorStop(1, 'rgba(240, 68, 82, 0)');
+          simMainCtx.fillStyle = grad;
+          simMainCtx.beginPath();
+          simMainCtx.arc(0, ledCenterY, glowR, 0, Math.PI * 2);
+          simMainCtx.fill();
+        }
+
+        // LED 돔 본체
+        simMainCtx.fillStyle = bVal > 2 ? '#f04452' : '#cbd5e1';
+        simMainCtx.strokeStyle = bVal > 2 ? '#be123c' : '#64748b';
+        simMainCtx.lineWidth = 2;
+        simMainCtx.beginPath();
+        simMainCtx.arc(0, ledCenterY, 11, Math.PI, 0, false);
+        simMainCtx.lineTo(11, ledCenterY + 8);
+        simMainCtx.lineTo(-11, ledCenterY + 8);
+        simMainCtx.closePath();
+        simMainCtx.fill();
+        simMainCtx.stroke();
+
+        // LED 유리 반사광
+        simMainCtx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+        simMainCtx.beginPath();
+        simMainCtx.arc(-3.5, ledCenterY - 3.5, 3, 0, Math.PI * 2);
+        simMainCtx.fill();
+
+        // 위쪽 코일 & LED 안내 캡션 (LED 위쪽에 깔끔한 알약 배지 1개만 배치)
+        const pillW = 166;
+        const pillY = ledCenterY - 36;
+        simMainCtx.fillStyle = 'rgba(255, 255, 255, 0.94)';
+        simMainCtx.strokeStyle = bVal > 2 ? '#fda4af' : '#cbd5e1';
+        simMainCtx.lineWidth = 1.2;
+        simMainCtx.beginPath();
+        simMainCtx.roundRect(-pillW / 2, pillY, pillW, 20, 10);
+        simMainCtx.fill();
+        simMainCtx.stroke();
+
+        simMainCtx.fillStyle = bVal > 2 ? '#be123c' : '#333d4b';
+        simMainCtx.font = 'bold 10.5px "Noto Sans KR", sans-serif';
+        simMainCtx.textAlign = 'center';
+        const statusShort = bVal > 2 ? 'LED 켜짐 (' + Math.round(bVal) + '%)' : '받는 코일 (잡고 이동)';
+        simMainCtx.fillText('↕ ' + statusShort + ' · ' + simState.rxTurns + '바퀴', 0, pillY + 14);
+
+        simMainCtx.restore();
+
+        // 6. 왼쪽 거리 눈금자 (깔끔한 단일 배지)
+        const rulerX = 24;
+        simMainCtx.strokeStyle = '#3182f6';
+        simMainCtx.lineWidth = 1.8;
+        simMainCtx.beginPath();
+        simMainCtx.moveTo(rulerX, rxY);
+        simMainCtx.lineTo(rulerX, txY);
+        simMainCtx.moveTo(rulerX - 5, rxY);
+        simMainCtx.lineTo(rulerX + 5, rxY);
+        simMainCtx.moveTo(rulerX - 5, txY);
+        simMainCtx.lineTo(rulerX + 5, txY);
+        simMainCtx.stroke();
+
+        const midRulerY = (rxY + txY) / 2;
+        simMainCtx.fillStyle = '#ffffff';
+        simMainCtx.strokeStyle = '#93c5fd';
+        simMainCtx.lineWidth = 1.2;
+        simMainCtx.beginPath();
+        simMainCtx.roundRect(rulerX + 6, midRulerY - 10, 52, 20, 6);
+        simMainCtx.fill();
+        simMainCtx.stroke();
+
+        simMainCtx.fillStyle = '#1b64da';
+        simMainCtx.font = 'bold 10.5px "Inter", "Noto Sans KR", sans-serif';
+        simMainCtx.textAlign = 'center';
+        simMainCtx.fillText(smoothState.distanceCm.toFixed(1) + 'cm', rulerX + 32, midRulerY + 4);
+
+        simMainCtx.restore();
+      }
+
+      // --- 오른쪽 전기 물결 그래프(오실로스코프) 렌더링 ---
+      function drawWaveCanvas() {
+        const parent = simWaveCanvas.parentElement;
+        const w = Math.max(200, parent.clientWidth);
+        const h = Math.max(50, parent.clientHeight);
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        const targetW = Math.floor(w * dpr);
+        const targetH = Math.floor(h * dpr);
+        if (simWaveCanvas.width !== targetW || simWaveCanvas.height !== targetH) {
+          simWaveCanvas.width = targetW;
+          simWaveCanvas.height = targetH;
+        }
+        simWaveCtx.save();
+        simWaveCtx.scale(dpr, dpr);
+        simWaveCtx.clearRect(0, 0, w, h);
+
+        const midY = h / 2;
+        simWaveCtx.strokeStyle = 'rgba(148, 163, 184, 0.2)';
+        simWaveCtx.lineWidth = 1;
+        simWaveCtx.beginPath();
+        simWaveCtx.moveTo(0, midY);
+        simWaveCtx.lineTo(w, midY);
+        simWaveCtx.stroke();
+
+        const phys = computeSimPhysics();
+
+        // 아래 코일이 보내는 자기장 물결 (주황색)
+        simWaveCtx.strokeStyle = '#f59e0b';
+        simWaveCtx.lineWidth = 1.8;
+        simWaveCtx.beginPath();
+        const txAmp = phys.oscillating ? h * 0.32 : 0;
+        for (let x = 0; x < w; x += 3) {
+          const y = midY + Math.sin(x * 0.065 - simState.phaseTick * 2) * txAmp;
+          if (x === 0) simWaveCtx.moveTo(x, y);
+          else simWaveCtx.lineTo(x, y);
+        }
+        simWaveCtx.stroke();
+
+        // 위 코일에 만들어지는 유도 전기 물결 (빨간색, 부드러운 보간 전압 반영)
+        simWaveCtx.strokeStyle = '#f04452';
+        simWaveCtx.lineWidth = 2.2;
+        simWaveCtx.beginPath();
+        const rxAmp = (smoothState.inducedVoltage / 3.4) * (h * 0.42);
+        for (let x = 0; x < w; x += 3) {
+          const y = midY + Math.cos(x * 0.065 - simState.phaseTick * 2) * rxAmp;
+          if (x === 0) simWaveCtx.moveTo(x, y);
+          else simWaveCtx.lineTo(x, y);
+        }
+        simWaveCtx.stroke();
+
+        simWaveCtx.restore();
+      }
+
+      function animateLoop() {
+        simState.phaseTick += 0.12;
+        drawMainSimulator();
+        drawWaveCanvas();
+        requestAnimationFrame(animateLoop);
+      }
+
+      window.addEventListener('resize', function () {
+        drawMainSimulator();
+        drawWaveCanvas();
+      });
+
+      window.addEventListener('load', function () {
+        updateSimUI();
+        animateLoop();
+      });
+    })();
+  </script>
+</body>
+</html>
